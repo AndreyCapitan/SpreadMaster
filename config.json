@@ -1,0 +1,92 @@
+{
+  "exchanges": {
+    "binance": {
+      "name": "Binance",
+      "enabled": true,
+      "rest_url": "https://api.binance.com"
+    },
+    "bybit": {
+      "name": "Bybit",
+      "enabled": true,
+      "rest_url": "https://api.bybit.com"
+    },
+    "okx": {
+      "name": "OKX",
+      "enabled": true,
+      "rest_url": "https://www.okx.com"
+    },
+    "htx": {
+      "name": "HTX",
+      "enabled": true,
+      "rest_url": "https://api.huobi.pro"
+    },
+    "kucoin": {
+      "name": "KuCoin",
+      "enabled": true,
+      "rest_url": "https://api.kucoin.com"
+    },
+    "gateio": {
+      "name": "Gate.io",
+      "enabled": true,
+      "rest_url": "https://api.gateio.ws"
+    },
+    "mexc": {
+      "name": "MEXC",
+      "enabled": true,
+      "rest_url": "https://api.mexc.com"
+    },
+    "kraken": {
+      "name": "Kraken",
+      "enabled": true,
+      "rest_url": "https://api.kraken.com"
+    },
+    "bitget": {
+      "name": "Bitget",
+      "enabled": true,
+      "rest_url": "https://api.bitget.com"
+    }
+  },
+  "trading_pairs": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "XRP/USDT",
+    "DOGE/USDT",
+    "ADA/USDT",
+    "AVAX/USDT",
+    "LINK/USDT",
+    "DOT/USDT",
+    "MATIC/USDT",
+    "SHIB/USDT",
+    "LTC/USDT",
+    "TRX/USDT",
+    "ATOM/USDT",
+    "UNI/USDT",
+    "XLM/USDT",
+    "BCH/USDT",
+    "FIL/USDT",
+    "APT/USDT",
+    "ARB/USDT",
+    "OP/USDT",
+    "NEAR/USDT",
+    "INJ/USDT",
+    "SUI/USDT",
+    "PEPE/USDT"
+  ],
+  "spread_thresholds": {
+    "high": 1.0,
+    "medium": 0.5,
+    "low": 0.0
+  },
+  "colors": {
+    "high": "#22c55e",
+    "medium": "#eab308",
+    "low": "#6b7280"
+  },
+  "update_interval_ms": 1000,
+  "stochastic_settings": {
+    "k_period": 14,
+    "d_period": 3,
+    "smooth": 3
+  }
+}

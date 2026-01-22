@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SpreadMaster</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-top">
+                <h1>SM</h1>
+                <span id="status-dot" class="dot active"></span>
+                <span class="user-badge" id="user-badge">{{ user.username }}</span>
+            </div>
+            <div class="controls">
+                <button id="pause-btn" class="btn btn-icon" title="Play">
+                    <svg id="pause-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <button id="theme-btn" class="btn btn-icon btn-theme" title="Toggle Theme">
+                    <svg id="theme-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+                <button id="settings-btn" class="btn btn-icon btn-settings" title="Settings">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <a href="/logout" class="btn btn-icon btn-logout" title="Logout">
+                    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </a>
+            </div>
+        </header>
+
+        <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="demo" onclick="switchMode('demo')">Demo</button>
+            <button class="mode-tab" data-mode="real" onclick="switchMode('real')">Real</button>
+            <button class="mode-tab ml" data-mode="ml" onclick="switchMode('ml')">ML</button>
+        </div>
+        
+        <div id="mode-warning" class="mode-warning hidden">
+            <span class="warning-icon">&#9888;</span>
+            <span class="warning-text"></span>
+        </div>
+
+        <div class="main-content">
+            <section class="panel spread-panel">
+                <div class="panel-header">
+                    <h2>Spreads</h2>
+                    <div class="auto-entry-row">
+                        <span id="auto-entry-btn" class="auto-entry-btn">Auto</span>
+                        <div id="auto-entry-controls" class="auto-entry-controls">
+                            <div class="slider-group">
+                                <span class="slider-label">Open:</span>
+                                <button class="slider-arrow" onclick="adjustAutoEntry(-0.01)">◀</button>
+                                <input type="range" id="auto-entry-slider" class="threshold-slider" min="0" max="2.0" step="0.01" value="0" oninput="updateAutoEntryThreshold(this.value)">
+                                <button class="slider-arrow" onclick="adjustAutoEntry(0.01)">▶</button>
+                                <span id="auto-entry-label" class="slider-value clickable-value" onclick="promptAutoEntry()">OFF</span>
+                            </div>
+                            <div class="slider-group">
+                                <span class="slider-label">Close:</span>
+                                <button class="slider-arrow" onclick="adjustAutoClose(-0.01)">◀</button>
+                                <input type="range" id="auto-close-slider" class="threshold-slider" min="0" max="2.0" step="0.01" value="0" oninput="updateAutoCloseThreshold(this.value)">
+                                <button class="slider-arrow" onclick="adjustAutoClose(0.01)">▶</button>
+                                <span id="auto-close-label" class="slider-value clickable-value" onclick="promptAutoClose()">OFF</span>
+                            </div>
+                            <div class="slider-group">
+                                <span class="slider-label">Max:</span>
+                                <button class="slider-arrow" onclick="adjustMaxContracts(-1)">◀</button>
+                                <input type="number" id="max-contracts-input" class="number-input" min="1" max="20" value="5" onchange="updateMaxContracts(this.value)">
+                                <button class="slider-arrow" onclick="adjustMaxContracts(1)">▶</button>
+                            </div>
+                            <div class="slider-group">
+                                <span class="slider-label">Bank%:</span>
+                                <button class="slider-arrow" onclick="adjustBankPercent(-1)">◀</button>
+                                <input type="number" id="bank-percent-input" class="number-input" min="1" max="100" value="10" onchange="updateBankPercent(this.value)">
+                                <button class="slider-arrow" onclick="adjustBankPercent(1)">▶</button>
+                                <span class="slider-unit">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="legend-mini">
+                        <span class="leg high"></span>
+                        <span class="leg medium"></span>
+                        <span class="leg low"></span>
+                    </div>
+                </div>
+                <div class="spread-list" id="spread-list">
+                </div>
+            </section>
+            
+            <section class="panel contracts-panel">
+                <div class="panel-header">
+                    <h2>Contracts</h2>
+                    <label class="auto-toggle">
+                        <input type="checkbox" id="autonomous-toggle" onchange="toggleAutonomousMode(this.checked)">
+                        <span class="auto-label">24/7</span>
+                    </label>
+                </div>
+                <div class="contracts-list" id="contracts-list">
+                    <div class="empty-contracts">Press C to open contract</div>
+                </div>
+                <div class="contracts-footer">
+                    <button class="history-btn" onclick="showClosedContracts()">
+                        History <span id="history-count">0</span>
+                    </button>
+                    <div class="total-row">
+                        <span>Total:</span>
+                        <span id="total-profit" class="total-value profit">+0.000%</span>
+                        <button class="reset-btn" onclick="resetTotalStats()" title="Reset">↺</button>
+                    </div>
+                </div>
+                
+                <div id="ai-panel" class="ai-panel hidden">
+                    <div class="ai-header">
+                        <span class="ai-title">AI Assistant</span>
+                        <button class="ai-strategy-btn" onclick="getAiStrategy()" title="AI Стратегия">Стратегия</button>
+                    </div>
+                    <div class="ai-messages" id="ai-messages">
+                        <div class="ai-message system">AI готов помочь с торговыми решениями</div>
+                    </div>
+                    <div class="ai-input-row">
+                        <input type="text" id="ai-input" placeholder="Спросите AI..." class="ai-input" onkeypress="if(event.key==='Enter')sendAiMessage()">
+                        <button class="ai-send-btn" onclick="sendAiMessage()">&#8594;</button>
+                    </div>
+                </div>
+                <div class="spread-controls">
+                    <div class="interval-buttons">
+                        <button class="interval-btn" data-interval="5000">5s</button>
+                        <button class="interval-btn active" data-interval="15000">15s</button>
+                        <button class="interval-btn" data-interval="30000">30s</button>
+                        <button class="interval-btn" data-interval="60000">1m</button>
+                    </div>
+                    <div class="limit-buttons">
+                        <button class="limit-btn active" data-limit="15">15</button>
+                        <button class="limit-btn" data-limit="30">30</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <div id="history-modal" class="modal">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h3>Closed Contracts</h3>
+                    <button class="reset-btn history-reset" onclick="resetHistory()" title="Clear History">↺</button>
+                    <button class="close-btn" onclick="closeHistoryModal()">×</button>
+                </div>
+                <div class="history-list" id="history-list">
+                </div>
+            </div>
+        </div>
+
+        <div id="chart-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-title">Charts</h3>
+                    <div class="timeframe-selector">
+                        <button class="tf-btn" data-tf="5m">5m</button>
+                        <button class="tf-btn active" data-tf="15m">15m</button>
+                        <button class="tf-btn" data-tf="1h">1h</button>
+                    </div>
+                    <button class="close-btn" id="close-modal">×</button>
+                </div>
+                <div class="chart-container">
+                    <div id="price-chart"></div>
+                    <div id="stochastic-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button class="close-btn" onclick="closeSettingsModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <h4>Profile</h4>
+                        <div class="profile-form">
+                            <div class="profile-row">
+                                <label>Login:</label>
+                                <span id="profile-username">{{ user.username }}</span>
+                            </div>
+                            <div class="profile-row">
+                                <label>Email:</label>
+                                <input type="email" id="profile-email" value="{{ user.email or '' }}" 
+                                       placeholder="your@email.com" class="input-field">
+                                <button class="btn btn-small" id="save-email-btn">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h4>Pairs <span class="badge" id="pairs-count">0</span></h4>
+                        <div class="section-buttons">
+                            <button class="btn btn-mini" onclick="toggleAllPairs(true)">All</button>
+                            <button class="btn btn-mini" onclick="toggleAllPairs(false)">None</button>
+                            <button class="btn btn-mini" onclick="showAvailablePairs()">Available</button>
+                        </div>
+                        <div class="pairs-grid" id="pairs-list">
+                            {% for pair in trading_pairs %}
+                            <div class="pair-chip" data-pair="{{ pair }}">
+                                <label class="toggle-switch mini">
+                                    <input type="checkbox" class="pair-toggle" data-pair="{{ pair }}" 
+                                           {% if loop.index <= 5 %}checked{% endif %}>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="pair-label">{{ pair.split('/')[0] }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h4>Exchanges <span class="badge" id="ex-count">0</span></h4>
+                        <div class="section-buttons">
+                            <button class="btn btn-mini" onclick="toggleAllExchanges(true)">All</button>
+                            <button class="btn btn-mini" onclick="toggleAllExchanges(false)">None</button>
+                            <button class="btn btn-mini" onclick="showConnectedExchanges()">Connected</button>
+                        </div>
+                        <div class="exchanges-grid" id="settings-exchanges">
+                            {% for ex_id, ex_config in exchanges.items() %}
+                            <div class="exchange-chip" data-exchange="{{ ex_id }}">
+                                <label class="toggle-switch mini">
+                                    <input type="checkbox" class="exchange-toggle" data-exchange="{{ ex_id }}" 
+                                           {% if ex_config.enabled %}checked{% endif %}>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="exchange-label">{{ ex_config.name }}</span>
+                                <button class="connect-btn" data-exchange="{{ ex_id }}" onclick="quickConnect('{{ ex_id }}')" title="Connect account">+</button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h4>My Accounts <button class="btn btn-small" id="add-account-btn">+ Add</button></h4>
+                        <div class="accounts-list" id="accounts-list">
+                            <div class="empty-state small">No accounts connected</div>
+                        </div>
+                    </div>
+                    
+                    <div id="add-account-form" class="account-form hidden">
+                        <select id="account-exchange" class="input-field">
+                            <option value="">Select exchange...</option>
+                            {% for ex_id, ex_config in exchanges.items() %}
+                            <option value="{{ ex_id }}">{{ ex_config.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" id="account-name" placeholder="Account name" class="input-field">
+                        <input type="text" id="account-api-key" placeholder="API Key" class="input-field">
+                        <input type="password" id="account-api-secret" placeholder="API Secret" class="input-field">
+                        <input type="password" id="account-passphrase" placeholder="Passphrase (if required)" class="input-field">
+                        <div class="form-buttons">
+                            <button class="btn btn-primary" id="save-account-btn">Save</button>
+                            <button class="btn" id="cancel-account-btn">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

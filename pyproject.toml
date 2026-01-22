@@ -1,0 +1,24 @@
+[project]
+name = "python-template"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.13.3",
+    "cryptography>=46.0.3",
+    "email-validator>=2.3.0",
+    "flask>=3.1.2",
+    "flask-login>=0.6.3",
+    "flask-sqlalchemy>=3.1.1",
+    "gunicorn>=23.0.0",
+    "numpy>=2.4.1",
+    "openai>=2.15.0",
+    "pandas>=2.3.3",
+    "plotly>=6.5.2",
+    "psycopg2-binary>=2.9.11",
+    "requests>=2.32.5",
+    "sqlalchemy>=2.0.45",
+    "websocket-client>=1.9.0",
+    "werkzeug>=3.1.5",
+]
