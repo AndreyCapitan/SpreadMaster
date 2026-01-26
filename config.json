@@ -1,29 +1,174 @@
 {
+  "debug": true,
+  "environment": "production",
+  "project": "SpreadMaster on Fly.io",
+  
+  "webserver": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "workers": 2,
+    "timeout": 30,
+    "cors_origins": ["*"],
+    "rate_limit_per_ip": 60
+  },
+  
+  "database": {
+    "path": "/data/spreadmaster.db",
+    "pool_size": 5,
+    "wal_autocheckpoint": 1000,
+    "journal_mode": "WAL",
+    "synchronous": "NORMAL"
+  },
+  
   "exchanges": {
     "bitget": {
-      "name": "Bitget",
-      "ccxt_overrides": {}
+      "enabled": true,
+      "rate_limit": 10,
+      "timeout": 15000,
+      "ccxt_overrides": {"enableRateLimit": true},
+      "default_type": "spot"
     },
     "mexc": {
-      "name": "MEXC", 
-      "ccxt_overrides": {}
+      "enabled": true,
+      "rate_limit": 20,
+      "timeout": 15000,
+      "ccxt_overrides": {"enableRateLimit": true},
+      "default_type": "spot"
+    },
+    "bybit": {
+      "enabled": true,
+      "rate_limit": 10,
+      "timeout": 15000,
+      "ccxt_overrides": {"enableRateLimit": true},
+      "default_type": "spot"
+    },
+    "okx": {
+      "enabled": true,
+      "rate_limit": 5,
+      "timeout": 15000,
+      "ccxt_overrides": {"enableRateLimit": true},
+      "default_type": "spot"
+    },
+    "binance": {
+      "enabled": true,
+      "rate_limit": 10,
+      "timeout": 15000,
+      "ccxt_overrides": {"enableRateLimit": true},
+      "default_type": "spot"
+    },
+    "bingx": {
+      "enabled": true,
+      "rate_limit": 10,
+      "timeout": 20000,
+      "ccxt_overrides": {"enableRateLimit": true},
+      "default_type": "spot"
+    },
+    "kucoin": {
+      "enabled": true,
+      "rate_limit": 8,
+      "timeout": 15000,
+      "ccxt_overrides": {"enableRateLimit": true},
+      "default_type": "spot"
+    },
+    "paradex": {
+      "enabled": false,
+      "rate_limit": 3,
+      "timeout": 30000,
+      "ccxt_overrides": {},
+      "notes": "Требует отдельной реализации API"
     }
   },
-  "trading_pairs": ["BTC/USDT", "ETH/USDT", "BNB/USDT"],
-  "spread_thresholds": {
-    "high": 1.0,
-    "medium": 0.5,
-    "low": 0.1
+  
+  "monitoring": {
+    "update_interval": 30,
+    "health_check_interval": 120,
+    "cache_ttl": 1.5,
+    "retry_attempts": 2,
+    "initial_delay": 5,
+    
+    "pairs_to_monitor": [
+      "BTC/USDT", "ETH/USDT", "BNB/USDT", "SOL/USDT", "XRP/USDT",
+      "ADA/USDT", "AVAX/USDT", "DOT/USDT", "DOGE/USDT", "MATIC/USDT",
+      "LINK/USDT", "LTC/USDT", "UNI/USDT", "ATOM/USDT", "FIL/USDT",
+      "SUI/USDT", "APT/USDT", "ARB/USDT", "OP/USDT"
+    ],
+    
+    "ping_optimization": {
+      "enabled": true,
+      "fast_exchanges_first": true,
+      "regional_latency_boost": true,
+      "timeout_multiplier": 1.5
+    },
+    
+    "alert_thresholds": {
+      "min_spread_percent": 0.25,
+      "min_volume_usdt": 50000,
+      "max_price_deviation": 1.8
+    }
   },
-  "colors": {
-    "high": "#22c55e",
-    "medium": "#eab308",
-    "low": "#6b7280"
+  
+  "arbitrage": {
+    "enabled": true,
+    "min_profit_percent": 0.35,
+    "max_slippage_percent": 0.15,
+    "volume_weight": 0.3,
+    "latency_weight": 0.2,
+    
+    "pair_groups": {
+      "majors": ["BTC/USDT", "ETH/USDT", "BNB/USDT"],
+      "midcaps": ["SOL/USDT", "XRP/USDT", "ADA/USDT", "AVAX/USDT", "DOT/USDT"],
+      "alts": ["MATIC/USDT", "LINK/USDT", "LTC/USDT"]
+    },
+    
+    "exchange_combinations": [
+      ["binance", "bybit"],
+      ["okx", "bitget"],
+      ["kucoin", "mexc"],
+      ["binance", "okx", "kucoin"]
+    ]
   },
-  "stochastic_settings": {
-    "k_period": 14,
-    "d_period": 3,
-    "smooth": 3
+  
+  "fly_io": {
+    "region": "iad",
+    "memory_mb": 512,
+    "cpu_share": 256,
+    "auto_restart": true,
+    "metrics_port": 9091,
+    
+    "deployment": {
+      "build_command": "pip install -r requirements.txt",
+      "start_command": "python app.py",
+      "health_check_path": "/health",
+      "health_check_timeout": 10
+    }
   },
-  "update_interval_ms": 5000
+  
+  "performance": {
+    "log_level": "INFO",
+    "log_format": "json",
+    "enable_metrics": true,
+    "metrics_interval": 60,
+    
+    "memory": {
+      "max_rss_mb": 450,
+      "gc_threshold": 85
+    },
+    
+    "network": {
+      "keepalive_timeout": 75,
+      "max_connections": 100
+    }
+  },
+  
+  "security": {
+    "api_key_encryption": true,
+    "encryption_key": "CHANGE_THIS_IN_PRODUCTION_32_CHAR_MIN",
+    "rate_limit_strategy": "token_bucket",
+    "request_size_limit_mb": 2,
+    "disable_admin_on_cloud": true
+  },
+  
+  "version": "2.1.0-fly",
+  "config_version": 2,
+  "notes": "Оптимизирован для Fly.io. Формат пар: BASE/QUOTE. MATIC/USDT корректно."
 }
