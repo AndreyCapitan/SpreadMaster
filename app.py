@@ -4,25 +4,42 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 import json
 import threading
 import time
-from openai import OpenAI
+#from openai import OpenAI
 from exchanges import ExchangeManager
 from spread_calculator import SpreadCalculator, StochasticCalculator
 from models import db, ExchangeAccount, UserSettings, User, Contract, AutoTradeSettings
 from datetime import datetime
 
-ai_client = OpenAI(
-    api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-    base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
-)
+#ai_client = OpenAI(
+#    api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+#   base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+#)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", os.urandom(24).hex())
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+# Настройки базы данных - ОДНА строка URI
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'app.db'))
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
-db.init_app(app)
+app.secret_key = os.environ.get("SESSION_SECRET", os.urandom(24).hex())
+
+# Инициализация расширений
+db.init_app(app)  # <-- Теперь эта строка выполнится без ошибки
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+#db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+    print("[STARTUP] Таблицы базы данных созданы (если не существовали).")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -41,6 +58,32 @@ spread_calculator = SpreadCalculator(
     config.get('colors', {})
 )
 stochastic_calculator = StochasticCalculator(**config.get('stochastic_settings', {}))
+
+# ============= НАЧАЛО НОВОГО КОДА ДЛЯ АКТИВАЦИИ КЛЮЧЕЙ =============
+# Этот код загружает активные ключи из базы данных при запуске приложения
+print("[STARTUP] Запуск активации сохранённых API-ключей из БД...")
+with app.app_context():
+    # Импортируем модель здесь, чтобы избежать циклических зависимостей
+    from models import ExchangeAccount
+    active_accounts = ExchangeAccount.query.filter_by(is_active=True).all()
+    print(f"[STARTUP] Найдено {len(active_accounts)} активных ключей в БД.")
+    
+    for account in active_accounts:
+        print(f"[STARTUP] Пробую активировать ключ для биржи: {account.exchange_id}")
+        # Получаем расшифрованные ключи из модели
+        creds = account.get_credentials()
+        if creds and creds.get('api_key'):
+            success = exchange_manager.set_exchange_credentials(
+                account.exchange_id,
+                creds['api_key'],
+                creds['api_secret']
+            )
+            status = "УСПЕХ" if success else "ПРОВАЛ"
+            print(f"[STARTUP] Результат активации {account.exchange_id}: {status}")
+        else:
+            print(f"[STARTUP] Не удалось получить ключи для {account.exchange_id} из БД.")
+print("[STARTUP] Завершение активации ключей.")
+# ============= КОНЕЦ НОВОГО КОДА =============
 
 app_state = {
     'paused': False,
@@ -93,10 +136,6 @@ from auto_trader import AutoTrader
 
 auto_trader = None
 
-with app.app_context():
-    db.create_all()
-    auto_trader = AutoTrader(app, db, exchange_manager, spread_calculator)
-    auto_trader.start()
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -206,8 +245,8 @@ def get_state():
     exchanges_state = {}
     for ex_id, exchange in exchange_manager.exchanges.items():
         exchanges_state[ex_id] = {
-            'name': exchange.name,
-            'enabled': exchange.enabled
+            'name': exchange.config.get('name', exchange.config.get('id', 'Unknown')),
+            'enabled': exchange.exchange is not None
         }
     
     user_exchanges = current_user.get_enabled_exchanges()
@@ -272,19 +311,18 @@ def toggle_exchange():
     data = request.json
     exchange_id = data.get('exchange_id')
     enabled = data.get('enabled', True)
-    exchange_manager.set_exchange_enabled(exchange_id, enabled)
-    
+    # УДАЛЕНО: exchange_manager.set_exchange_enabled(exchange_id, enabled)
+
     user_exchanges = current_user.get_enabled_exchanges()
     if enabled and exchange_id not in user_exchanges:
         user_exchanges.append(exchange_id)
     elif not enabled and exchange_id in user_exchanges:
         user_exchanges.remove(exchange_id)
-    
+
     current_user.enabled_exchanges = ','.join(user_exchanges)
     db.session.commit()
-    
-    return jsonify({'success': True, 'enabled_exchanges': user_exchanges})
 
+    return jsonify({'success': True, 'enabled_exchanges': user_exchanges})
 
 @app.route('/api/toggle_pair', methods=['POST'])
 @login_required
@@ -627,4 +665,8 @@ update_thread.start()
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    with app.app_context():
+        db.create_all()
+        auto_trader = AutoTrader(app, db, exchange_manager, spread_calculator)
+        auto_trader.start()
+    app.run(debug=False)

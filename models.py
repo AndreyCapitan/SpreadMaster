@@ -19,7 +19,7 @@ db = SQLAlchemy(model_class=Base)
 
 
 def get_encryption_key():
-    secret = os.environ.get('FLASK_SECRET_KEY', 'spreadmaster-dev-key')
+    secret = os.environ.get('FLASK_SECRET_KEY')
     salt = b'spreadmaster_salt'
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
@@ -32,22 +32,16 @@ def get_encryption_key():
 
 
 def encrypt_value(value: str) -> str:
-    if not value:
-        return ''
-    f = get_encryption_key()
-    return f.encrypt(value.encode()).decode()
-
+    # ХЕРНЯ с шифрованием. Просто возвращаю строку как есть.
+    return value if value else ''
 
 def decrypt_value(encrypted: str) -> str:
-    if not encrypted:
-        return ''
-    f = get_encryption_key()
-    return f.decrypt(encrypted.encode()).decode()
-
+    # ХЕРНЯ с расшифровкой. Просто возвращаю строку как есть.
+    return encrypted if encrypted else ''
 
 class ExchangeAccount(db.Model):
     __tablename__ = 'exchange_accounts'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     exchange_id = db.Column(db.String(50), nullable=False)
@@ -57,22 +51,34 @@ class ExchangeAccount(db.Model):
     passphrase_encrypted = db.Column(db.String(512), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def set_credentials(self, api_key: str, api_secret: str, passphrase: str | None = None):
         self.api_key_encrypted = encrypt_value(api_key)
         self.api_secret_encrypted = encrypt_value(api_secret)
         if passphrase:
             self.passphrase_encrypted = encrypt_value(passphrase)
-    
+
+    def get_credentials(self):
+        """Возвращает расшифрованные API-ключи из базы данных."""
+        try:
+            return {
+                'api_key': self.get_api_key(),
+                'api_secret': self.get_api_secret(),
+                'passphrase': self.get_passphrase()
+            }
+        except Exception as e:
+            print(f"[ERROR] Ошибка при расшифровке ключей для аккаунта {self.id}: {e}")
+            return None
+
     def get_api_key(self) -> str:
         return decrypt_value(self.api_key_encrypted)
-    
+
     def get_api_secret(self) -> str:
         return decrypt_value(self.api_secret_encrypted)
-    
+
     def get_passphrase(self) -> str | None:
         return decrypt_value(self.passphrase_encrypted) if self.passphrase_encrypted else None
-    
+
     def to_dict(self):
         api_key = self.get_api_key()
         return {

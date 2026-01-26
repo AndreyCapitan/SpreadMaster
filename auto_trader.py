@@ -65,10 +65,10 @@ class AutoTrader:
         spreads = self.spread_calculator.calculate_spreads(prices, enabled_pairs)
         
         filtered = [s for s in spreads 
-                   if s['bid_exchange'] in enabled_exchanges 
-                   and s['ask_exchange'] in enabled_exchanges]
+                   if s.bid_exchange in enabled_exchanges 
+                   and s.ask_exchange in enabled_exchanges]
         
-        return sorted(filtered, key=lambda x: x['spread_percent'], reverse=True)
+        return sorted(filtered, key=lambda x: x.spread_percent, reverse=True)
     
     def _auto_close_contracts(self, settings, spreads: List[Dict]):
         from models import Contract
@@ -80,8 +80,8 @@ class AutoTrader:
         
         spread_map = {}
         for s in spreads:
-            key = f"{s['pair']}-{s['bid_exchange']}-{s['ask_exchange']}"
-            spread_map[key] = s['spread_percent']
+            key = f"{s.pair}-{s.bid_exchange}-{s.ask_exchange}"
+            spread_map[key] = s.spread_percent
         
         for contract in active_contracts:
             current_spread = spread_map.get(contract.contract_key, contract.current_spread)
@@ -115,10 +115,10 @@ class AutoTrader:
             if active_count >= settings.max_contracts:
                 break
             
-            if spread['spread_percent'] < settings.open_threshold:
+            if spread.spread_percent < settings.open_threshold:
                 break
             
-            key = f"{spread['pair']}-{spread['bid_exchange']}-{spread['ask_exchange']}"
+            key = f"{spread.pair}-{spread.bid_exchange}-{spread.ask_exchange}"
             
             if key in existing_keys:
                 continue
@@ -126,11 +126,11 @@ class AutoTrader:
             contract = Contract(
                 user_id=settings.user_id,
                 contract_key=key,
-                pair=spread['pair'],
-                buy_exchange=spread['ask_exchange'],
-                sell_exchange=spread['bid_exchange'],
-                entry_spread=spread['spread_percent'],
-                current_spread=spread['spread_percent'],
+                pair=spread.pair,
+                buy_exchange=spread.ask_exchange,
+                sell_exchange=spread.bid_exchange,
+                entry_spread=spread.spread_percent,
+                current_spread=spread.spread_percent,
                 auto_close=True,
                 close_threshold=settings.close_threshold,
                 is_active=True,
@@ -140,6 +140,6 @@ class AutoTrader:
             self.db.session.add(contract)
             existing_keys.add(key)
             active_count += 1
-            print(f"AutoTrader: Opened contract {key} at {spread['spread_percent']:.3f}%")
+            print(f"AutoTrader: Opened contract {key} at {spread.spread_percent:.3f}%")
         
         self.db.session.commit()
