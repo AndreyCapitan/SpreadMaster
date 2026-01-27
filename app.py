@@ -12,10 +12,11 @@ from spread_calculator import SpreadCalculator, StochasticCalculator
 from models import db, User, Exchange, ArbitrageConfig, TradingPair, TradeLog
 from auto_trader import AutoTrader 
 
-# 1. First, create the Flask app
+# ==================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ====================
+
 app = Flask(__name__)
 
-# 2. Configure the app
+# Конфигурация
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL',
     'sqlite:///' + os.path.join(os.path.dirname(__file__), 'app.db')
@@ -26,19 +27,13 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 app.secret_key = os.environ.get("SESSION_SECRET", os.urandom(24).hex())
-
-# 3. Initialize Extensions
+auto_trader = AutoTrader(app, db, ExchangeManager, SpreadCalculator)
+# Инициализация расширений
 db.init_app(app)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-
-# 4. Create dependency instances
-exchange_manager = ExchangeManager()
-spread_calculator = SpreadCalculator()
-
-# 5. FINALLY, initialize auto_trader now that app, db, etc. exist
-auto_trader = AutoTrader(app, db, exchange_manager, spread_calculator)
 
 @login_manager.user_loader
 def load_user(user_id):

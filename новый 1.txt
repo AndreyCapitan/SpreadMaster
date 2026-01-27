@@ -1,6 +1,0 @@
-Проект SpreadMaster:
-1. cd /c/SpredMaster/SpreadMaster
-2. source .venv/Scripts/activate
-3. python run_app.py
-4. Браузер: http://127.0.0.1:5000
-5. Логин: daomileh / 280612
