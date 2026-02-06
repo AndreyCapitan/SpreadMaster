@@ -1,0 +1,24 @@
+Проект SpreadMaster:
+1. cd /c/SpredMaster/SpreadMaster
+2. source .venv/Scripts/activate
+3. python run_app.py
+4. Браузер: http://127.0.0.1:5000
+5. Логин: daomileh / 280612
+
+
+https://github.com/AndreyCapitan/SpreadMaster/tree/main
+
+app.py https://raw.githubusercontent.com/AndreyCapitan/SpreadMaster/refs/heads/main/app.py
+
+models.py https://raw.githubusercontent.com/AndreyCapitan/SpreadMaster/refs/heads/main/models.py
+
+auto_trader.py https://raw.githubusercontent.com/AndreyCapitan/SpreadMaster/refs/heads/main/auto_trader.py
+
+config.json https://raw.githubusercontent.com/AndreyCapitan/SpreadMaster/refs/heads/main/config.json
+
+exchanges.py https://raw.githubusercontent.com/AndreyCapitan/SpreadMaster/refs/heads/main/exchanges.py
+
+requirements.txt https://raw.githubusercontent.com/AndreyCapitan/SpreadMaster/refs/heads/main/requirements.txt
+
+spread_calculator.py https://raw.githubusercontent.com/AndreyCapitan/SpreadMaster/refs/heads/main/spread_calculator.py
+

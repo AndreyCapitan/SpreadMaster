@@ -17,7 +17,12 @@ logger = logging.getLogger(__name__)
 RATE_LIMITS = {
     'bitget': 10,
     'mexc': 20,
-    'okx': 5
+    'okx': 5,
+    'bybit': 10,
+    'binance': 10,
+    'bingx': 10,
+    'kucoin': 8,
+    'paradex': 5  # Предположительный лимит
 }
 
 # Время жизни кэша тикеров (секунды)
@@ -210,17 +215,28 @@ class RobustExchangeConnection:
                 self.exchange.load_markets()
         except Exception as e:
             logger.warning(f"Не удалось загрузить рынки для {self.exchange_id}: {e}")
+            return None
 
+        # ВАЖНО: Преобразуем формат пары, если нужно
+        # Некоторые биржи используют формат без слэша (например, MATICUSDT)
+        market_symbol = symbol
+        
+        # Проверяем, существует ли пара в загруженных рынках
+        if hasattr(self.exchange, 'markets'):
+            # Пробуем несколько вариантов формата
+            possible_symbols = [
+                symbol,  # BTC/USDT
+                symbol.replace('/', ''),  # BTCUSDT
+                symbol.replace('/', '-'),  # BTC-USDT
+            ]
+            
+            for possible_symbol in possible_symbols:
+                if possible_symbol in self.exchange.markets:
+                    market_symbol = possible_symbol
+                    break
+        
         # Выполняем безопасный запрос
         try:
-            market_symbol = symbol
-            if hasattr(self.exchange, 'market_id'):
-                # Пробуем получить ID рынка, если метод существует
-                try:
-                    market_symbol = self.exchange.market_id(symbol)
-                except:
-                    pass  # Оставляем исходный символ
-
             raw_ticker = self._safe_request(self.exchange.fetch_ticker, market_symbol)
             if not raw_ticker:
                 return None
@@ -289,15 +305,35 @@ class ExchangeManager:
     def _initialize_exchanges(self):
         """Инициализирует все биржи из конфигурации в режиме публичного доступа."""
         exchanges_config = self.config.get('exchanges', {})
-        for ex_id, ex_config in exchanges_config.items():
+        
+        # Список всех бирж для инициализации
+        all_exchanges = {
+            'bitget': {'ccxt_overrides': {}},
+            'mexc': {'ccxt_overrides': {}},
+            'bybit': {'ccxt_overrides': {}},
+            'okx': {'ccxt_overrides': {}},
+            'binance': {'ccxt_overrides': {}},
+            'bingx': {'ccxt_overrides': {}},
+            'kucoin': {'ccxt_overrides': {}},
+            'paradex': {'ccxt_overrides': {}}  # ПРИМЕЧАНИЕ: Paradex может не поддерживаться в CCXT напрямую
+        }
+        
+        # Объединяем конфиг из файла с нашим списком
+        for ex_id, ex_config in all_exchanges.items():
+            if ex_id in exchanges_config:
+                ex_config.update(exchanges_config[ex_id])
+            
             connection_config = {**ex_config, 'id': ex_id}
             connection = RobustExchangeConnection(connection_config)
 
-            if connection.connect():  # Публичное подключение без ключей
-                self.exchanges[ex_id] = connection
-                logger.info(f"Биржа {ex_id} готова к работе.")
-            else:
-                logger.warning(f"Биржа {ex_id} пропущена из-за ошибки инициализации.")
+            try:
+                if connection.connect():  # Публичное подключение без ключей
+                    self.exchanges[ex_id] = connection
+                    logger.info(f"Биржа {ex_id} готова к работе.")
+                else:
+                    logger.warning(f"Биржа {ex_id} пропущена из-за ошибки инициализации.")
+            except Exception as e:
+                logger.error(f"Критическая ошибка при инициализации биржи {ex_id}: {e}")
 
     def get_exchange(self, exchange_id: str) -> Optional[RobustExchangeConnection]:
         """Возвращает объект подключения к бирже по её ID."""
@@ -351,15 +387,19 @@ class ExchangeManager:
     def get_exchange_status(self, exchange_id: str) -> Dict[str, Any]:
         """Возвращает детальный статус биржи."""
         connection = self.get_exchange(exchange_id)
-        if not connection:
-            return {"error": "Биржа не найдена"}
+        if connection:
+            return connection.get_health_status()
+        return {
+            "id": exchange_id,
+            "is_healthy": False,
+            "last_error": "Биржа не инициализирована",
+            "error_count_1h": 0,
+            "success_count_1h": 0,
+            "avg_ping_ms": None,
+            "last_checked": None,
+            "is_private": False
+        }
 
-        # Если пинг не измерялся, измеряем
-        if connection.health.avg_ping_ms is None:
-            connection.measure_ping()
-
-        return connection.get_health_status()
-
-    def get_all_statuses(self) -> Dict[str, Dict[str, Any]]:
-        """Возвращает статус всех бирж."""
-        return {ex_id: self.get_exchange_status(ex_id) for ex_id in self.exchanges}
+    def get_all_exchange_statuses(self) -> Dict[str, Dict[str, Any]]:
+        """Возвращает статус всех инициализированных бирж."""
+        return {ex_id: conn.get_health_status() for ex_id, conn in self.exchanges.items()}
